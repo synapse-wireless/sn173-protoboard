@@ -57,7 +57,6 @@ CLK_FOSC_DIV1024 = 5
 CLK_EXT_FALLING = 6
 CLK_EXT_RISING = 7
 
-
 def set_tmr_ocr(tmr, ocr, val):
     """Set OCR register. This controls the duty cycle (duty/TOP) in some
     PWM modes"""
@@ -99,3 +98,18 @@ def timer_init(tmr, wgm_mode, clk_sel, icr):
     # ICRx
     poke(tmr + ICRx + 1, (icr >> 8) & 0xFF)  # high byte
     poke(tmr + ICRx, icr & 0xff)  # low byte
+    
+def set_icp_mode(tmr, is_positive, do_filter):
+    """Set edge and filter (noise cancel) mode for input capture unit"""
+    tccrXb = peek(tmr + TCCRxB)
+    tccrXb &= 0x3F
+    if is_positive:
+        tccrXb |= 0x40
+    if do_filter:
+        tccrXb |= 0x80
+    poke(tmr + TCCRxB, tccrXb)
+
+def get_icp_val(tmr):
+    """Read input capture value"""
+    return peek(tmr + ICRx) | (peek(tmr + ICRx + 1) << 8)
+

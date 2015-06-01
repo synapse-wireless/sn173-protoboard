@@ -121,6 +121,7 @@ def set_tilt_trim(val):
     
 @setHook(HOOK_1S)
 def tick1s():
+    # Comforting LED blink
     pulsePin(LED1, 100, True)
     
 @setHook(HOOK_10MS)
