@@ -15,9 +15,19 @@ $(document).ready(function() {
     console.log("hello!");
 });
 
+var t_last_plot = [null, null, null, null];
+var ms_min_plot = 1000;
+
 // Call-in from server SNAP application
 function report_dist(index, val) {
-    plot(index, val);
+
+    var time = (new Date()).getTime();
+
+    if (t_last_plot[index] == null || (time - t_last_plot[index]) > ms_min_plot)  {
+        plot(index, val);
+        t_last_plot[index] = time;
+    }
+
     if (val > 100) {
         val = 100;
     }
