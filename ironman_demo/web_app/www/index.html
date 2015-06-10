@@ -1,0 +1,47 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/> 
+    <title>IronMan Demo</title>
+   
+    <link rel="stylesheet" type="text/css" href="mainstyle.css" media="screen" />
+	
+    <script type="text/javascript" src="jquery-1.11.3.min.js"></script>
+    <script type="text/javascript" src="highcharts.js"></script>
+    <script type="text/javascript" src="syn_websocket.js"></script>
+    <script type="text/javascript" src="main.js"></script>
+    <script type="text/javascript" src="dark-unica.js"></script>
+    
+  </head>
+
+  <body style="background:black">
+
+    <div id="banner">
+       <img src="banner.png" width=100%>
+    </div>
+  
+    <div class="main_page">
+    
+      <div class="blast_box">
+        <div id="dist_plot0" class="graph"></div>
+        <canvas id="blast_canvas0" width="420" height="550" class="blaster"></canvas>
+      </div>
+      
+      <div class="blast_box">
+        <div id="dist_plot1" class="graph"></div>
+        <canvas id="blast_canvas1" width="420" height="550" class="blaster"></canvas>
+      </div>
+      
+      <div class="blast_box">
+        <div id="dist_plot2" class="graph"></div>
+        <canvas id="blast_canvas2" width="420" height="550" class="blaster"></canvas>
+      </div>
+      
+      <div class="blast_box">
+        <div id="dist_plot3" class="graph"></div>
+        <canvas id="blast_canvas3" width="420" height="550" class="blaster"></canvas>
+      </div>
+      
+    </div>  
+  </body>
+</html>

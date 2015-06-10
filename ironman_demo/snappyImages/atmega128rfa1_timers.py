@@ -1,8 +1,13 @@
-# (c) Copyright 2011-2013, Synapse Wireless, Inc.
+# (c) Copyright 2011-2015, Synapse Wireless, Inc.
 """ATmega128RFA1 timer support
 Currently covers setup for basic timing and PWM operation.
-Note: Timer4 is used as SNAP's 1ms timer, and Timer5 is used by some sleep
-modes.
+
+Currently supports 16-bit Timers 1,3,4,5 as well as 8-bit Timers 0,2.
+
+Note: Timer 0/2 functions/constants are separate, but share the Clock Select (CS)
+      and Compare Output Mode (COM) constants.
+
+Note: Timer4 is used as SNAP's 1ms timer, and Timer5 is used by some sleep modes.
 
 Ex.
   #Setup timer1 as 2MHz free-running counter (assumes 16MHz system clock)
@@ -15,6 +20,17 @@ Ex.
   set_tmr_output(TMR3, OCRxC, TMR_OUTP_CLR)  # Enable PWM on pin
   # ...
   set_tmr_output(TMR3, OCRxC, TMR_OUTP_OFF)  # Restore pin to regular I/O
+  
+Ex.
+  #Generate a 500uS one-shot pulse on OC0B
+  timer8_init(TMR0, WGM0_FASTPWM8_TOP_OCRA, CLK_FOSC_DIV256)  # 16us period
+  set_tmr8_output(TMR0, OCR0B, TMR_OUTP_SET)   # Set on match
+  set_tmr8_ocr(TMR0, OCR0A, 0)                 # Top=Bottom (one-shot mode)
+  match = 256 - 31                       # 31 * 16us = 496us
+  set_tmr8_ocr(TMR0, OCR0B, match)
+  # Generate pulse, by setting count just below match (will end at overflow)
+  set_tmr8_count(TMR0, match - 1)
+  
   
   http://www.atmel.com/Images/Atmel-8266-MCU_Wireless-ATmega128RFA1_Datasheet.pdf
 
@@ -56,6 +72,31 @@ CLK_FOSC_DIV256 = 4
 CLK_FOSC_DIV1024 = 5
 CLK_EXT_FALLING = 6
 CLK_EXT_RISING = 7
+
+# TMR0 register base and offsets
+TMR0 = 0x44
+TCCR0A = 0x00  # Timer/Counter Control Register  A
+TCCR0B = 0x01  # Timer/Counter Control Register  A
+TCNT0  = 0x02  # Timer0 Count
+OCR0A  = 0x03  # Output Compare Register A
+OCR0B  = 0x04  # Output Compare Register B
+WGM0_NORMAL = 0
+WGM0_FASTPWM8 = 3  # TOP=0xFF
+WGM0_FASTPWM8_TOP_OCRA = 7
+
+# TMR2 runs on 32kHz crystal, has different prescaler consts
+TMR2 = 0xB0  # Register offsets and WGMs are same as TMR0
+CLK2_FOSC = 1
+CLK2_FOSC_DIV8 = 2
+CLK2_FOSC_DIV32 = 3
+CLK2_FOSC_DIV64 = 4
+CLK2_FOSC_DIV128 = 5
+CLK2_FOSC_DIV256 = 6
+CLK2_FOSC_DIV1024 = 7
+
+# Synchronization control (All timers)
+GTCCR  = 0x43  # General Timer Counter Control Register
+
 
 def set_tmr_ocr(tmr, ocr, val):
     """Set OCR register. This controls the duty cycle (duty/TOP) in some
@@ -113,3 +154,47 @@ def get_icp_val(tmr):
     """Read input capture value"""
     return peek(tmr + ICRx) | (peek(tmr + ICRx + 1) << 8)
 
+
+#---- Timer 0 operations ----
+def timer8_init(tmr, wgm_mode, clk_sel):
+    """Initialize WGM0 waveform generation mode and clock select"""
+    # TCCR0A
+    value = wgm_mode & 0x03  # Set COM0A/B = O (off), and LSBs of WGM
+    poke(tmr + TCCR0A, value)
+
+    # TCCR0B
+    value = (wgm_mode & 0x04) << 1
+    value |= clk_sel & 0x07
+    poke(tmr + TCCR0B, value)
+
+def set_tmr8_output(tmr, ocr, mode):
+    """Set output mode"""
+    reg = tmr + TCCR0A
+    
+    shift = 6 if ocr == OCR0A else 4
+    mask = ~(0x03 << shift)
+    val = peek(reg)
+    val = (val & mask) | (mode << shift)
+    poke(reg, val)
+
+def set_tmr8_count(tmr, count):
+    """Set 8-bit immediate count value"""
+    poke(tmr + TCNT0, count)
+
+def get_tmr8_count(tmr):
+    """Read 8-bit immediate count value"""
+    return peek(tmr + TCNT0)
+
+def set_tmr8_ocr(tmr, ocr, val):
+    """Set 8-bit OCR register. This controls the duty cycle (duty/TOP) in some PWM modes"""
+    poke(tmr + ocr, val)
+
+
+#---- Global timer operations ----
+def timer_sync_halt(do_halt):
+    """Halt timers (and reset prescaler). TCNT values can be modified while halted, so timers will
+       remain synchronized when counting resumed"""
+    if do_halt:
+        poke(GTCCR, 0x83)
+    else:
+        poke(GTCCR, 0)
